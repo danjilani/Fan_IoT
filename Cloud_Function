@@ -1,0 +1,34 @@
+import base64
+
+def hello_pubsub(event, context):
+    """Triggered from a message on a Cloud Pub/Sub topic.
+    Args:
+         event (dict): Event payload.
+         context (google.cloud.functions.Context): Metadata for the event.
+    """
+    message = base64.b64decode(event['data']).decode('ascii')
+
+    import json
+    from google.cloud import iot_v1
+    client = iot_v1.DeviceManagerClient()
+
+    #config = json.dumps({"fan_on": 1}).encode('ascii')
+
+    #device_path = client.device_path('fan-iot-313519', 'us-central1', 'my-registry', 'my-device') 
+    #client.send_command_to_device(request={"name": device_path, "binary_data": config})   
+
+    temp = json.loads(message)
+
+    if (temp['temperature'] < 0):
+
+      config = json.dumps({"fan_on": 0}).encode('ascii')
+
+      device_path = client.device_path('fan-iot-313519', 'us-central1', 'my-registry', 'my-device')
+      client.send_command_to_device(request={"name": device_path, "binary_data": config})    
+
+    if (temp['temperature'] > 10):
+
+      config = json.dumps({"fan_on": 1}).encode('ascii')
+
+      device_path = client.device_path('fan-iot-313519', 'us-central1', 'my-registry', 'my-device') 
+      client.send_command_to_device(request={"name": device_path, "binary_data": config})   

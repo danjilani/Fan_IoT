@@ -1,0 +1,67 @@
+import base64
+from array import *
+
+archive = [[]]
+devicelist = []
+
+def hello_pubsub(event, context):
+    """Triggered from a message on a Cloud Pub/Sub topic.
+    Args:
+         event (dict): Event payload.
+         context (google.cloud.functions.Context): Metadata for the event.
+    """
+    message = base64.b64decode(event['data']).decode('ascii')
+
+    attr = event['attributes']
+    project_id = attr['projectId']
+    registry_id = attr['deviceRegistryId']
+    device_id = attr['deviceId']
+    region = attr['deviceRegistryLocation']
+
+    import json
+    from google.cloud import iot_v1
+    client = iot_v1.DeviceManagerClient()
+
+    temp = json.loads(message)
+    device_path = client.device_path(project_id, region, registry_id, device_id)
+
+    #Turn on/off fan
+    if (temp[9] < 0):
+
+      config = json.dumps({"fan_on": 0}).encode('ascii')
+      client.send_command_to_device(request={"name": device_path, "binary_data": config})    
+
+    if (temp[9] > 10):
+
+      config = json.dumps({"fan_on": 1}).encode('ascii')
+      client.send_command_to_device(request={"name": device_path, "binary_data": config})   
+
+    global archive
+    global devicelist
+
+    dewey = 0
+
+    #Check for new device
+    for dev in devicelist:
+      if(deviceId == dev):
+        break
+      
+      dewey += 1
+
+    #Adds new device to list if unrecognized
+    if(dewey > len(devicelist)):
+      print('New Device Connected!')
+      devicelist.append(deviceId)
+      archive.insert(dewey, temp)
+      return
+
+    print('{}'.format(dewey))
+    print(archive)
+    archive[dewey].extend(temp)
+    if(len(archive[dewey]) >= 30):
+      print("Submitted with length {}".format(archive[dewey]))
+      hist = json.dumps(archive[dewey]).encode('ascii')
+
+      client.send_command_to_device(request={"name": device_path, "binary_data": hist}) 
+
+      archive[dewey] = []
